@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waaree Plant Cloudflare Tunnels — Live Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+        }
+        .pulse-emerald {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1);
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex flex-col justify-between p-4 sm:p-6 md:p-10">
+ 
+    <div class="max-w-4xl w-full mx-auto">
+        <!-- HEADER -->
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-8 border-b border-slate-700/60 mb-8">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-900 font-black text-2xl shadow-lg shadow-amber-500/20">
+                    <i class="fas fa-solar-panel"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                        WAAREE SOLAR
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Live Plant Cloud</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-0.5">Live Ephemeral Cloudflare Tunnels (Zero Egress, Auto-Synced via Cloudflare D1)</p>
+                </div>
+            </div>
+ 
+            <div class="flex items-center gap-3">
+                <button id="refreshBtn" onclick="fetchTunnelData()" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition flex items-center gap-2 shadow-sm">
+                    <i id="refreshIcon" class="fas fa-arrows-rotate"></i>
+                    <span>Refresh</span>
+                </button>
+                <div class="text-[11px] text-slate-400 font-mono text-right hidden sm:block">
+                    Auto-sync <span class="text-emerald-400 font-bold">10s</span>
+                </div>
+            </div>
+        </header>
+ 
+        <!-- STATUS BANNER -->
+        <div id="connectionStatus" class="glass-card rounded-2xl p-4 mb-8 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span class="text-sm font-medium text-slate-300" id="syncStatusText">Connecting to Cloudflare D1 Database...</span>
+            </div>
+            <span class="text-xs text-slate-400" id="lastUpdatedClock">--:--:--</span>
+        </div>
+ 
+        <!-- TUNNELS GRID -->
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-6" id="projectsContainer">
+            <!-- OTS Project Card -->
+            <div class="glass-card rounded-2xl p-6 transition flex flex-col justify-between relative overflow-hidden" id="card-OTS">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div>
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-lg">
+                                <i class="fas fa-id-card-clip"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-white">OTS Plant System</h3>
+                                <p class="text-xs text-slate-400">Operator Tracking &amp; Scanner (Port 3006)</p>
+                            </div>
+                        </div>
+                        <span id="badge-OTS" class="px-2.5 py-1 text-[10px] font-extrabold rounded-full bg-slate-800 text-slate-400 border border-slate-700 uppercase tracking-wider">
+                            Checking...
+                        </span>
+                    </div>
+ 
+                    <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800/80 mb-5 font-mono">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">Live Endpoint</div>
+                        <div id="url-OTS" class="text-xs text-blue-400 truncate">Loading tunnel...</div>
+                    </div>
+                </div>
+ 
+                <div class="flex flex-col gap-2 pt-2 border-t border-slate-800/80">
+                    <a id="link-direct-OTS" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition">
+                        <span>Open OTS Scanner Direct</span>
+                        <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                    <a id="link-root-OTS" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700/80 text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition text-center">
+                        <span>Root Dashboard</span>
+                    </a>
+                </div>
+            </div>
+ 
+            <!-- HOURLY MIS Project Card -->
+            <div class="glass-card rounded-2xl p-6 transition flex flex-col justify-between relative overflow-hidden" id="card-HOURLY_MIS">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div>
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-lg">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-white">CMES Hourly &amp; MIS</h3>
+                                <p class="text-xs text-slate-400">Cell Manufacturing Tracking (Port 5058)</p>
+                            </div>
+                        </div>
+                        <span id="badge-HOURLY_MIS" class="px-2.5 py-1 text-[10px] font-extrabold rounded-full bg-slate-800 text-slate-400 border border-slate-700 uppercase tracking-wider">
+                            Checking...
+                        </span>
+                    </div>
+ 
+                    <div class="bg-slate-900/60 rounded-xl p-3 border border-slate-800/80 mb-5 font-mono">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">Live Endpoint</div>
+                        <div id="url-HOURLY_MIS" class="text-xs text-amber-400 truncate">Loading tunnel...</div>
+                    </div>
+                </div>
+ 
+                <div class="flex flex-col gap-2 pt-2 border-t border-slate-800/80">
+                    <a id="link-direct-HOURLY_MIS" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition">
+                        <span>Open Hourly &amp; MIS Direct</span>
+                        <i class="fas fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                    <a id="link-root-HOURLY_MIS" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700/80 text-slate-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition text-center">
+                        <span>Production Analytics</span>
+                    </a>
+                </div>
+            </div>
+        </main>
+ 
+        <!-- QUICK NAV / SCANNER APP LINK -->
+        <div class="mt-8 text-center">
+            <a href="iphone_scanner.html" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 transition">
+                <i class="fas fa-mobile-screen-button"></i>
+                <span>Switch to Standalone iPhone Mobile Scanner UI &rarr;</span>
+            </a>
+        </div>
+    </div>
+ 
+    <!-- FOOTER -->
+    <footer class="mt-12 text-center text-xs text-slate-500">
+        &copy; 2026 Waaree Cell Manufacturing Excellence System (CMES) &bull; Cloudflare D1 Cloud Sync Active
+    </footer>
+ 
+    <!-- LOGIC -->
+    <script>
+        const CF_CONFIG = {
+            accountId: '81ebdb19730ce355c0a845a966d1d642',
+            databaseId: '32d08740-e3ca-4dbc-bc56-98b6a54b177e',
+            apiToken: 'cfut_aInXUN437k3N4m1sDcoyQd9u2GylvMXdQ98TIBTg72b3e37e'
+        };
+ 
+        const D1_QUERY_URL = `https://api.cloudflare.com/client/v4/accounts/${CF_CONFIG.accountId}/d1/database/${CF_CONFIG.databaseId}/query`;
+ 
+        async function fetchTunnelData() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            if (refreshIcon) refreshIcon.classList.add('fa-spin');
+ 
+            const statusEl = document.getElementById('syncStatusText');
+            const clockEl = document.getElementById('lastUpdatedClock');
+ 
+            try {
+                // Fetch all project tunnels from Cloudflare D1
+                const response = await fetch(D1_QUERY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${CF_CONFIG.apiToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sql: 'SELECT * FROM project_tunnels ORDER BY project_id ASC;'
+                    })
+                });
+ 
+                if (!response.ok) {
+                    throw new Error(`Cloudflare D1 HTTP ${response.status}`);
+                }
+ 
+                const result = await response.json();
+                if (result.success && result.result && result.result[0]) {
+                    const rows = result.result[0].results || [];
+                    renderTunnels(rows);
+                    if (statusEl) statusEl.textContent = `Cloudflare D1 Online (${rows.length} projects synced)`;
+                    if (clockEl) clockEl.textContent = new Date().toLocaleTimeString();
+                } else {
+                    throw new Error(result.errors?.[0]?.message || 'Query failed');
+                }
+            } catch (err) {
+                console.error('[Tunnel Fetch Error]', err);
+                if (statusEl) statusEl.textContent = `Sync notice: ${err.message}`;
+            } finally {
+                if (refreshIcon) {
+                    setTimeout(() => refreshIcon.classList.remove('fa-spin'), 600);
+                }
+            }
+        }
+ 
+        function renderTunnels(projects) {
+            projects.forEach(p => {
+                const pid = p.project_id;
+                const badge = document.getElementById(`badge-${pid}`);
+                const urlEl = document.getElementById(`url-${pid}`);
+                const directLink = document.getElementById(`link-direct-${pid}`);
+                const rootLink = document.getElementById(`link-root-${pid}`);
+ 
+                const isOnline = (p.status || '').toUpperCase() === 'ONLINE';
+                const tunnelUrl = p.tunnel_url || '';
+                const targetDirect = p.direct_url || tunnelUrl;
+ 
+                if (badge) {
+                    if (isOnline) {
+                        badge.className = 'px-2.5 py-1 text-[10px] font-extrabold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 uppercase tracking-wider flex items-center gap-1.5';
+                        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE';
+                    } else if (p.status === 'RECONNECTING' || p.status === 'WAITING_TUNNEL') {
+                        badge.className = 'px-2.5 py-1 text-[10px] font-extrabold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 uppercase tracking-wider';
+                        badge.textContent = p.status;
+                    } else {
+                        badge.className = 'px-2.5 py-1 text-[10px] font-extrabold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 uppercase tracking-wider';
+                        badge.textContent = 'OFFLINE';
+                    }
+                }
+ 
+                if (urlEl) {
+                    if (isOnline && tunnelUrl) {
+                        urlEl.textContent = p.hostname || tunnelUrl.replace('https://', '');
+                        urlEl.title = tunnelUrl;
+                    } else {
+                        urlEl.textContent = isOnline ? 'Acquiring hostname...' : 'Tunnel standby / offline';
+                    }
+                }
+ 
+                if (directLink) {
+                    if (isOnline && targetDirect) {
+                        directLink.href = targetDirect;
+                        directLink.classList.remove('opacity-50', 'pointer-events-none');
+                    } else {
+                        directLink.href = '#';
+                        directLink.classList.add('opacity-50', 'pointer-events-none');
+                    }
+                }
+ 
+                if (rootLink) {
+                    if (isOnline && tunnelUrl) {
+                        rootLink.href = tunnelUrl;
+                        rootLink.classList.remove('opacity-50', 'pointer-events-none');
+                    } else {
+                        rootLink.href = '#';
+                        rootLink.classList.add('opacity-50', 'pointer-events-none');
+                    }
+                }
+            });
+        }
+ 
+        // Run immediately on page load
+        fetchTunnelData();
+        // Refresh every 10 seconds for real-time responsiveness
+        setInterval(fetchTunnelData, 10000);
+    </script>
+</body>
+</html>
