@@ -3,134 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waaree CMES - Live Hourly Tunnel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <title>Waaree Plant Cloudflare Tunnels - Live Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
-        body { background:#f1f5f9; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; color:#0f172a; }
-        .card { background:#ffffff; border-radius:18px; max-width:540px; width:100%; box-shadow:0 10px 25px -5px rgba(0,0,0,0.08); border:1px solid #e2e8f0; overflow:hidden; }
-        .header { background:#007a3d; color:#ffffff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center; }
-        .title { font-size:17px; font-weight:800; display:flex; align-items:center; gap:8px; }
-        .badge { background:#dc2626; color:#ffffff; padding:4px 12px; border-radius:9999px; font-size:11px; font-weight:800; letter-spacing:0.5px; transition:background 0.3s; }
-        .badge.online { background:#16a34a; }
-        .body { padding:24px; }
-        .section-label { font-size:11px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:8px; display:flex; justify-content:space-between; }
-        .url-box { background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:10px; padding:12px; word-break:break-all; font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:700; color:#0369a1; margin-bottom:20px; min-height:45px; display:flex; align-items:center; }
-        .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px 18px; border-radius:10px; text-decoration:none; font-weight:800; font-size:14px; margin-bottom:10px; transition:all 0.15s; }
-        .btn-green { background:#007a3d; color:#ffffff; }
-        .btn-green:hover { background:#005a2d; }
-        .btn-blue { background:#0284c7; color:#ffffff; }
-        .btn-blue:hover { background:#0369a1; }
-        .btn-purple { background:#7c3aed; color:#ffffff; }
-        .btn-purple:hover { background:#6d28d9; }
-        .btn.disabled { opacity:0.5; pointer-events:none; }
-        .qr-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; text-align:center; margin-top:16px; display:none; }
-        .qr-card img { border-radius:8px; border:1px solid #cbd5e1; background:#ffffff; padding:6px; width:180px; height:180px; }
-        .footer { background:#f8fafc; border-top:1px solid #e2e8f0; padding:12px 24px; font-size:11px; color:#64748b; display:flex; justify-content:space-between; align-items:center; }
+        body { background:#f1f5f9; min-height:100vh; padding:24px 16px; color:#0f172a; }
+        .wrapper { max-width:980px; margin:0 auto; }
+        .header { background:linear-gradient(135deg, #007a3d 0%, #005a2d 100%); color:#ffffff; padding:22px 24px; border-radius:18px; margin-bottom:20px; box-shadow:0 8px 24px -4px rgba(0,122,61,0.25); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+        .brand-title { font-size:20px; font-weight:900; display:flex; align-items:center; gap:10px; }
+        .brand-subtitle { font-size:12px; opacity:0.9; margin-top:4px; }
+        .header-badge { background:rgba(255,255,255,0.2); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.3); font-size:11px; font-weight:800; padding:5px 12px; border-radius:9999px; display:inline-flex; align-items:center; gap:6px; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+        .project-card { background:#ffffff; border-radius:16px; border:1.5px solid #e2e8f0; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between; transition:transform 0.2s, border-color 0.2s; }
+        .project-card:hover { transform:translateY(-2px); border-color:#cbd5e1; box-shadow:0 8px 20px -4px rgba(0,0,0,0.08); }
+        .card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .icon-box { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+        .badge { font-size:10px; font-weight:800; padding:4px 10px; border-radius:9999px; text-transform:uppercase; letter-spacing:0.5px; }
+        .badge-online { background:#16a34a; color:#fff; }
+        .badge-offline { background:#dc2626; color:#fff; }
+        .card-title { font-size:15px; font-weight:800; color:#0f172a; margin-top:2px; }
+        .card-meta { font-size:11px; color:#64748b; font-weight:600; margin-bottom:8px; }
+        .card-desc { font-size:12px; color:#475569; line-height:1.4; margin-bottom:14px; min-height:34px; }
+        .url-box { background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:10px; padding:10px 12px; font-family:'JetBrains Mono', monospace; font-size:11.5px; font-weight:700; color:#0369a1; word-break:break-all; margin-bottom:14px; min-height:48px; display:flex; align-items:center; }
+        .url-box.online { background:#f0fdf4; border-color:#86efac; color:#15803d; }
+        .btn-launch { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:12px 16px; color:#ffffff; font-weight:800; font-size:13px; border-radius:10px; text-decoration:none; box-sizing:border-box; transition:opacity 0.2s; }
+        .btn-launch.disabled { pointer-events:none; opacity:0.45; background:#94a3b8 !important; }
+        .qr-section { margin-top:12px; padding-top:12px; border-top:1px dashed #e2e8f0; text-align:center; display:none; }
+        .qr-section img { width:95px; height:95px; border-radius:8px; border:1px solid #cbd5e1; background:#fff; padding:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+        .qr-caption { font-size:10px; color:#64748b; font-weight:700; margin-top:4px; }
+        .footer { text-align:center; margin-top:24px; font-size:11.5px; color:#64748b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:10px 4px; }
+        .gist-link { color:#007a3d; text-decoration:none; font-weight:700; }
+        .gist-link:hover { text-decoration:underline; }
     </style>
 </head>
 <body>
-    <div class="card">
+    <div class="wrapper">
+        <!-- HEADER -->
         <div class="header">
-            <div class="title">⚡ Waaree CMES Hourly Tunnel</div>
-            <div id="statusBadge" class="badge">OFFLINE</div>
-        </div>
-        <div class="body">
-            <div class="section-label">
-                <span>Active Tunnel Endpoint</span>
-                <span>Port 5058</span>
+            <div>
+                <div class="brand-title">
+                    <i class="fas fa-industry"></i>
+                    <span>Waaree Plant Cloudflare Tunnels</span>
+                </div>
+                <div class="brand-subtitle">
+                    Real-Time Direct Access &bull; CMES Hourly, OTS, Locker &amp; File Sharing Systems
+                </div>
             </div>
-            <div id="tunnelUrlBox" class="url-box">Tunnel offline or checking...</div>
-
-            <a id="btnEntry" href="#" target="_blank" class="btn btn-green disabled">🚀 Open Hourly Data Entry (/entry)</a>
-            <a id="btnMis" href="#" target="_blank" class="btn btn-blue disabled">📊 Open MIS Dashboard (/mis)</a>
-            <a id="btnSummary" href="#" target="_blank" class="btn btn-purple disabled">📋 Open Daily Summary (/summary)</a>
-
-            <div id="qrCard" class="qr-card">
-                <div style="font-size:12px; font-weight:700; margin-bottom:8px;">📱 Scan for Instant Mobile Entry</div>
-                <img id="qrImg" src="" alt="QR Code">
+            <div class="header-badge">
+                <i class="fas fa-sync-alt" id="syncIcon"></i>
+                <span id="syncText">Syncing...</span>
             </div>
         </div>
+
+        <!-- 4-PROJECT CARDS GRID -->
+        <div class="grid">
+            <!-- 1. CMES HOURLY & MIS -->
+            <div class="project-card" id="card-HOURLY_MIS">
+                <div>
+                    <div class="card-top">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="icon-box" style="background:#007a3d;"><i class="fas fa-solar-panel"></i></div>
+                            <div>
+                                <div class="card-title">CMES Hourly &amp; MIS</div>
+                                <div class="card-meta">Port 5058 &bull; PRODUCTION</div>
+                            </div>
+                        </div>
+                        <span id="badge-HOURLY_MIS" class="badge badge-offline">OFFLINE</span>
+                    </div>
+                    <div class="card-desc">Hourly Production Matrix, Fleet Overview, Shift OEE &amp; Real-time Output tracking.</div>
+                    <div id="url-HOURLY_MIS" class="url-box">Offline / Standby</div>
+                </div>
+                <div>
+                    <a id="btn-HOURLY_MIS" href="#" target="_blank" class="btn-launch disabled" style="background:#007a3d;">
+                        <span>Launch Hourly Data Entry</span> <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <div id="qr-HOURLY_MIS" class="qr-section">
+                        <img id="qrimg-HOURLY_MIS" src="" alt="QR">
+                        <div class="qr-caption">Scan for Instant Mobile Entry</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. OTS OPERATOR TRACKING -->
+            <div class="project-card" id="card-OTS">
+                <div>
+                    <div class="card-top">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="icon-box" style="background:#0284c7;"><i class="fas fa-id-card-clip"></i></div>
+                            <div>
+                                <div class="card-title">OTS Operator Tracking</div>
+                                <div class="card-meta">Port 3006 &bull; MANPOWER</div>
+                            </div>
+                        </div>
+                        <span id="badge-OTS" class="badge badge-offline">OFFLINE</span>
+                    </div>
+                    <div class="card-desc">Attendance verification, manpower allocation by cell lines &amp; RFID scanner integration.</div>
+                    <div id="url-OTS" class="url-box">Offline / Standby</div>
+                </div>
+                <div>
+                    <a id="btn-OTS" href="#" target="_blank" class="btn-launch disabled" style="background:#0284c7;">
+                        <span>Launch OTS Tracking</span> <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <div id="qr-OTS" class="qr-section">
+                        <img id="qrimg-OTS" src="" alt="QR">
+                        <div class="qr-caption">Scan for Mobile OTS</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. LOCKER MANAGEMENT -->
+            <div class="project-card" id="card-LOCKER">
+                <div>
+                    <div class="card-top">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="icon-box" style="background:#7c3aed;"><i class="fas fa-key"></i></div>
+                            <div>
+                                <div class="card-title">Locker Management</div>
+                                <div class="card-meta">Port 5004 &bull; ASSETS</div>
+                            </div>
+                        </div>
+                        <span id="badge-LOCKER" class="badge badge-offline">OFFLINE</span>
+                    </div>
+                    <div class="card-desc">Cell shop floor locker allocations, employee locker registry, audits &amp; status reports.</div>
+                    <div id="url-LOCKER" class="url-box">Offline / Standby</div>
+                </div>
+                <div>
+                    <a id="btn-LOCKER" href="#" target="_blank" class="btn-launch disabled" style="background:#7c3aed;">
+                        <span>Launch Locker System</span> <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <div id="qr-LOCKER" class="qr-section">
+                        <img id="qrimg-LOCKER" src="" alt="QR">
+                        <div class="qr-caption">Scan for Mobile Lockers</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. PLANT FILE SHARING -->
+            <div class="project-card" id="card-FILE_SHARING">
+                <div>
+                    <div class="card-top">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="icon-box" style="background:#ea580c;"><i class="fas fa-file-excel"></i></div>
+                            <div>
+                                <div class="card-title">Plant File Sharing</div>
+                                <div class="card-meta">Port 5002 &bull; OFFICE</div>
+                            </div>
+                        </div>
+                        <span id="badge-FILE_SHARING" class="badge badge-offline">OFFLINE</span>
+                    </div>
+                    <div class="card-desc">Collaborative Excel live editor, paperless doc downloads &amp; blue-collar records exchange.</div>
+                    <div id="url-FILE_SHARING" class="url-box">Offline / Standby</div>
+                </div>
+                <div>
+                    <a id="btn-FILE_SHARING" href="#" target="_blank" class="btn-launch disabled" style="background:#ea580c;">
+                        <span>Launch File Sharing</span> <i class="fas fa-arrow-right"></i>
+                    </a>
+                    <div id="qr-FILE_SHARING" class="qr-section">
+                        <img id="qrimg-FILE_SHARING" src="" alt="QR">
+                        <div class="qr-caption">Scan for File Sharing</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
         <div class="footer">
-            <span id="lastUpdatedText">Syncing live tunnel...</span>
-            <span style="font-size:10px; opacity:0.8;">Auto-sync: 5s</span>
+            <div>
+                <i class="fab fa-github"></i> Sync Source: 
+                <a class="gist-link" href="https://gist.github.com/arun278627862/35f368f44fa7a5c338ee36fe37599f84" target="_blank">
+                    GitHub Gist (35f368f44fa7a5c338ee36fe37599f84)
+                </a>
+            </div>
+            <div id="lastSyncClock">Auto-sync active every 5s</div>
         </div>
     </div>
 
     <script>
         const GIST_API = "https://api.github.com/gists/35f368f44fa7a5c338ee36fe37599f84";
 
-        async function syncTunnelStatus() {
+        const PROJECT_CONFIGS = {
+            "HOURLY_MIS": { entry: "/entry" },
+            "OTS": { entry: "/" },
+            "LOCKER": { entry: "/" },
+            "FILE_SHARING": { entry: "/" }
+        };
+
+        async function syncAllTunnels() {
+            const icon = document.getElementById('syncIcon');
+            const syncText = document.getElementById('syncText');
+            if (icon) icon.classList.add('fa-spin');
+
             try {
-                // Fetch public Gist live data (no auth required)
                 const res = await fetch(GIST_API + "?_=" + Date.now(), { cache: "no-store" });
-                if (!res.ok) return;
+                if (!res.ok) throw new Error("HTTP " + res.status);
 
                 const data = await res.json();
                 const portalFile = data.files && data.files["portal.json"];
                 if (!portalFile || !portalFile.content) return;
 
-                const info = JSON.parse(portalFile.content);
-                const isOnline = (info.status || "").toLowerCase() === "online" && Boolean(info.url);
-                const url = (info.url || "").trim();
+                const payload = JSON.parse(portalFile.content);
+                const projects = payload.projects || {};
 
-                const badge = document.getElementById("statusBadge");
-                const urlBox = document.getElementById("tunnelUrlBox");
-                const btnEntry = document.getElementById("btnEntry");
-                const btnMis = document.getElementById("btnMis");
-                const btnSummary = document.getElementById("btnSummary");
-                const qrCard = document.getElementById("qrCard");
-                const qrImg = document.getElementById("qrImg");
-                const footerText = document.getElementById("lastUpdatedText");
+                // Render each of the 4 project cards
+                Object.keys(PROJECT_CONFIGS).forEach(pid => {
+                    renderProjectCard(pid, projects[pid]);
+                });
 
-                if (isOnline) {
-                    badge.textContent = "ONLINE";
-                    badge.className = "badge online";
-                    urlBox.textContent = url;
-
-                    btnEntry.href = (info.routes && info.routes.entry) || (url + "/entry");
-                    btnEntry.classList.remove("disabled");
-
-                    btnMis.href = (info.routes && info.routes.mis) || (url + "/mis");
-                    btnMis.classList.remove("disabled");
-
-                    btnSummary.href = (info.routes && info.routes.summary) || (url + "/summary");
-                    btnSummary.classList.remove("disabled");
-
-                    qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" + encodeURIComponent(btnEntry.href);
-                    qrCard.style.display = "block";
-                } else {
-                    badge.textContent = "OFFLINE";
-                    badge.className = "badge";
-                    urlBox.textContent = "Tunnel offline or restarting...";
-
-                    btnEntry.href = "#";
-                    btnEntry.classList.add("disabled");
-
-                    btnMis.href = "#";
-                    btnMis.classList.add("disabled");
-
-                    btnSummary.href = "#";
-                    btnSummary.classList.add("disabled");
-
-                    qrCard.style.display = "none";
-                }
-
-                if (info.updated_at_human) {
-                    footerText.textContent = "Last Updated: " + info.updated_at_human;
-                } else if (info.updated_at) {
-                    footerText.textContent = "Last Updated: " + new Date(info.updated_at).toLocaleTimeString();
+                if (syncText) syncText.textContent = "Synced";
+                const clock = document.getElementById('lastSyncClock');
+                if (clock && payload.updated_at_human) {
+                    clock.textContent = "Last Synced: " + payload.updated_at_human;
                 }
             } catch (err) {
-                console.warn("[Live Sync Notice]:", err);
+                console.warn("[Portal Sync]", err);
+                if (syncText) syncText.textContent = "Reconnecting...";
+            } finally {
+                if (icon) setTimeout(() => icon.classList.remove('fa-spin'), 500);
             }
         }
 
-        // Run immediately on load
-        syncTunnelStatus();
-        // Auto check every 5 seconds
-        setInterval(syncTunnelStatus, 5000);
+        function renderProjectCard(pid, info) {
+            const isOnline = info && (info.status || '').toLowerCase() === 'online' && Boolean(info.url);
+            const url = isOnline ? info.url.trim() : '';
+
+            const badge = document.getElementById('badge-' + pid);
+            const urlBox = document.getElementById('url-' + pid);
+            const btn = document.getElementById('btn-' + pid);
+            const qrBox = document.getElementById('qr-' + pid);
+            const qrImg = document.getElementById('qrimg-' + pid);
+
+            if (!badge || !urlBox || !btn) return;
+
+            if (isOnline) {
+                badge.className = "badge badge-online";
+                badge.textContent = "ONLINE";
+
+                urlBox.className = "url-box online";
+                urlBox.textContent = url;
+
+                const launchUrl = (info.entry_url) || (url + (PROJECT_CONFIGS[pid]?.entry || ''));
+                btn.href = launchUrl;
+                btn.classList.remove('disabled');
+
+                if (qrBox && qrImg) {
+                    qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=" + encodeURIComponent(launchUrl);
+                    qrBox.style.display = "block";
+                }
+            } else {
+                badge.className = "badge badge-offline";
+                badge.textContent = "OFFLINE";
+
+                urlBox.className = "url-box";
+                urlBox.textContent = "Offline / Standby";
+
+                btn.href = "#";
+                btn.classList.add('disabled');
+
+                if (qrBox) qrBox.style.display = "none";
+            }
+        }
+
+        // Run immediately and repeat every 5 seconds
+        syncAllTunnels();
+        setInterval(syncAllTunnels, 5000);
     </script>
 </body>
 </html>
-
