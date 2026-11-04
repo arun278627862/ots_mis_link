@@ -180,7 +180,9 @@
     </div>
 
     <script>
-        const GIST_API = "https://api.github.com/gists/35f368f44fa7a5c338ee36fe37599f84";
+        // High-availability data source: Raw Gist endpoint (No rate limits & bypasses API quota limits)
+        const RAW_GIST_URL = "https://gist.githubusercontent.com/arun278627862/35f368f44fa7a5c338ee36fe37599f84/raw/portal.json";
+        const API_GIST_URL = "https://api.github.com/gists/35f368f44fa7a5c338ee36fe37599f84";
 
         const PROJECT_CONFIGS = {
             "HOURLY_MIS": { entry: "/entry" },
@@ -194,33 +196,54 @@
             const syncText = document.getElementById('syncText');
             if (icon) icon.classList.add('fa-spin');
 
+            let payload = null;
+
+            // 1. Primary: Raw Gist URL (Fast, direct, NO rate limit)
             try {
-                const res = await fetch(GIST_API + "?_=" + Date.now(), { cache: "no-store" });
-                if (!res.ok) throw new Error("HTTP " + res.status);
-
-                const data = await res.json();
-                const portalFile = data.files && data.files["portal.json"];
-                if (!portalFile || !portalFile.content) return;
-
-                const payload = JSON.parse(portalFile.content);
-                const projects = payload.projects || {};
-
-                // Render each of the 4 project cards
-                Object.keys(PROJECT_CONFIGS).forEach(pid => {
-                    renderProjectCard(pid, projects[pid]);
-                });
-
-                if (syncText) syncText.textContent = "Synced";
-                const clock = document.getElementById('lastSyncClock');
-                if (clock && payload.updated_at_human) {
-                    clock.textContent = "Last Synced: " + payload.updated_at_human;
+                const res = await fetch(RAW_GIST_URL + "?_=" + Date.now(), { cache: "no-store" });
+                if (res.ok) {
+                    payload = await res.json();
                 }
             } catch (err) {
-                console.warn("[Portal Sync]", err);
-                if (syncText) syncText.textContent = "Reconnecting...";
-            } finally {
-                if (icon) setTimeout(() => icon.classList.remove('fa-spin'), 500);
+                console.warn("[Raw Fetch Fallback]", err);
             }
+
+            // 2. Secondary Fallback: GitHub REST API
+            if (!payload) {
+                try {
+                    const res = await fetch(API_GIST_URL + "?_=" + Date.now(), { cache: "no-store" });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const portalFile = data.files && data.files["portal.json"];
+                        if (portalFile && portalFile.content) {
+                            payload = JSON.parse(portalFile.content);
+                        }
+                    }
+                } catch (apiErr) {
+                    console.warn("[API Fetch Notice]", apiErr);
+                }
+            }
+
+            if (!payload || !payload.projects) {
+                if (syncText) syncText.textContent = "Reconnecting...";
+                if (icon) setTimeout(() => icon.classList.remove('fa-spin'), 500);
+                return;
+            }
+
+            const projects = payload.projects;
+
+            // Render each of the 4 project cards
+            Object.keys(PROJECT_CONFIGS).forEach(pid => {
+                renderProjectCard(pid, projects[pid]);
+            });
+
+            if (syncText) syncText.textContent = "Synced";
+            const clock = document.getElementById('lastSyncClock');
+            if (clock && payload.updated_at_human) {
+                clock.textContent = "Last Synced: " + payload.updated_at_human;
+            }
+
+            if (icon) setTimeout(() => icon.classList.remove('fa-spin'), 500);
         }
 
         function renderProjectCard(pid, info) {
